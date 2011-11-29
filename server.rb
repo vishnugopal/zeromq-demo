@@ -2,11 +2,14 @@
 
 require 'em-zeromq'
 
+Thread.abort_on_exception = true
+
 class Handler
   attr_accessor :request
   
   def on_readable(connection, message)
     @request = message.map(&:copy_out_string).join
+    message.each { |part| part.close }
     puts "Received #{@request}/#{ZMQ::Util.errno}"
     
     EM.add_timer(0.01) { connection.register_writable }
@@ -27,15 +30,16 @@ class Handler
   end
 end
 
+EM.epoll
 EM.run do
-  context = EM::ZeroMQ::Context.new(1)
+  @context = EM::ZeroMQ::Context.new(1)
 
   # Socket to talk to server
   puts "Connecting to hello world server..."
-  responder = context.bind(ZMQ::REP, "tcp://*:8742", Handler.new)
-  responder.identity = "server"
-  responder.notify_writable = false
+  @responder = @context.bind(ZMQ::REP, "tcp://*:8742", Handler.new)
+  @responder.identity = "server"
+  @responder.notify_writable = false
   puts "Connected"
 
-  EM.next_tick { responder.register_readable }
+  EM.next_tick { @responder.register_readable }
 end

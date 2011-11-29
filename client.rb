@@ -2,6 +2,8 @@
 
 require 'em-zeromq'
 
+Thread.abort_on_exception = true
+
 class Handler
   attr_accessor :counter
   
@@ -26,18 +28,17 @@ class Handler
   end
 end
 
+EM.epoll
 EM.run do
-  context = EM::ZeroMQ::Context.new(1)
+  @context = EM::ZeroMQ::Context.new(1)
 
   # Socket to talk to server
   puts "Connecting to hello world server..."
   
-  handler = Handler.new
-  requester = context.connect(ZMQ::REQ, "tcp://127.0.0.1:8742", handler)
-  requester.identity = "client#{rand(100)}"
-  requester.notify_writable = false
+  @handler = Handler.new
+  @requester = @context.connect(ZMQ::REQ, "tcp://127.0.0.1:8742", @handler)
+  @requester.identity = "client#{rand(100)}"
+  @requester.notify_writable = false
   
-  EM.next_tick { requester.register_writable }
-  
-  EM.add_timer(10) { EM.stop }
+  EM.next_tick { @requester.register_writable }
 end
