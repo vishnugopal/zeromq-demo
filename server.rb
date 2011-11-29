@@ -6,6 +6,7 @@ require_relative 'handler'
 
 Thread.abort_on_exception = true
 
+EM.epoll
 EM.synchrony do
   @context = EM::ZeroMQ::Context.new(1)
   @responder = @context.bind(ZMQ::REP, "tcp://127.0.0.1:8742")
