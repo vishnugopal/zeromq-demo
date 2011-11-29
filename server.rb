@@ -1,19 +1,40 @@
 
 
-require 'ffi-rzmq'
+require 'em-zeromq'
 
-context = ZMQ::Context.new(1)
-
-# Socket to talk to server
-puts "Connecting to hello world server..."
-responder = context.socket(ZMQ::REP)
-responder.bind("tcp://*:5555")
-puts "Connected"
-
-loop do
-  request = responder.recv_string ''
+class Handler
+  attr_accessor :request
   
-  sleep 1
+  def on_readable(connection, message)
+    @request = message.map(&:copy_out_string).join
+    puts "Received request: #{@request}/#{ZMQ::Util.errno}"
+    
+    EM.add_timer(0.01) { puts "Notify writable"; connection.register_writable }
+  end
   
-  responder.send_string "World"
+  def on_writable(connection)
+    message = @request.match(/[0-9]+/).to_a[0]
+    @request = nil
+    
+    return_value = connection.send_msg "World: #{message}"
+    puts "Sent: World: #{message} #{return_value}/#{ZMQ::Util.errno}"
+    EM.next_tick { connection.register_readable }
+  end
+  
+  def unbind(connection)
+    puts "Unbound!"
+  end
+end
+
+EM.run do
+  context = EM::ZeroMQ::Context.new(1)
+
+  # Socket to talk to server
+  puts "Connecting to hello world server..."
+  responder = context.bind(ZMQ::REP, "tcp://*:8742", Handler.new)
+  responder.identity = "server"
+  responder.notify_writable = false
+  puts "Connected"
+
+  EM.next_tick { responder.register_readable }
 end
