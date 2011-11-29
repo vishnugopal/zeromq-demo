@@ -7,17 +7,18 @@ class Handler
   
   def on_readable(connection, message)
     @request = message.map(&:copy_out_string).join
-    puts "Received request: #{@request}/#{ZMQ::Util.errno}"
+    puts "Received #{@request}/#{ZMQ::Util.errno}"
     
-    EM.add_timer(0.01) { puts "Notify writable"; connection.register_writable }
+    EM.add_timer(0.01) { connection.register_writable }
   end
   
   def on_writable(connection)
     message = @request.match(/[0-9]+/).to_a[0]
     @request = nil
     
-    return_value = connection.send_msg "World: #{message}"
-    puts "Sent: World: #{message} #{return_value}/#{ZMQ::Util.errno}"
+    message = "World: #{message}"
+    return_value = connection.send_msg message
+    puts "Sent #{message} #{return_value}/#{ZMQ::Util.errno}"
     EM.next_tick { connection.register_readable }
   end
   

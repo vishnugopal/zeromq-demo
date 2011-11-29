@@ -12,7 +12,7 @@ class Handler
   def on_readable(connection, message)
     puts "Received reply: #{message.map(&:copy_out_string)}"
     
-    EM.add_timer(0.01) { connection.register_writable }
+    EM.next_tick { connection.register_writable }
   end
   
   def on_writable(connection)
