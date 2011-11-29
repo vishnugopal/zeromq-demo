@@ -11,9 +11,13 @@ responder.bind("tcp://*:5555")
 puts "Connected"
 
 loop do
-  request = responder.recv_string ''
+  message = ""
+  return_code = responder.recv_string message
+  puts "Received: #{message} #{return_code}/#{ZMQ::Util.errno}"
   
-  sleep 1
+  response = "World #{message.match(/[0-9]+/).to_a[0]}"
+  sleep 0.01
   
-  responder.send_string "World"
+  return_code = responder.send_string response
+  puts "Sent: #{response} #{return_code}/#{ZMQ::Util.errno}"
 end

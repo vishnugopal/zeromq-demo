@@ -9,11 +9,16 @@ puts "Connecting to hello world server..."
 requester = context.socket(ZMQ::REQ)
 requester.connect("tcp://127.0.0.1:5555")
 
-0.upto(9) do |request_nbr|
-  puts "Sending request #{request_nbr}..."
-  requester.send_string "Hello"
-
-  reply = requester.recv_string ''
-  puts "Received reply #{request_nbr}: [#{reply}]"
+request_number = 1
+loop do
+  puts "Sending request #{request_number}..."
+  message = "Hello #{request_number}"
+  return_code = requester.send_string message
+  puts "Sent #{message} #{return_code}/#{ZMQ::Util.errno}"
+  
+  message = ""
+  return_code = requester.recv_string message
+  puts "Received #{message} #{return_code}/#{ZMQ::Util.errno}"
+  
+  request_number += 1
 end
-
